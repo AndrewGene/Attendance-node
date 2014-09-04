@@ -1,0 +1,40 @@
+	<footer class='clearfix'>
+		<div class='col third'>
+			<h2>Come visit us</h2>
+			<h3 style='font-size:0px;'>103 W Parkway, Russellville, AR 72801</h3>
+			<!--<h4><a href='tel:479-968-3300'>479-968-3300</a></h4>-->
+			<% include embedded_map %>
+		</div>
+		<div class='col third'>
+			<h2>Follow Us</h2>
+			<a href='facebook.com'><img src='img/fb_logo_72.png' alt='follow us on facebook'/></a>	
+		</div>
+		<div class='col third'>
+			<h2>Our Apps</h2>
+			<span>Take us with you.</span>
+		</div>
+	<script>
+		$(function(){
+			var wH = $(window).height();
+			var hH = $("header").outerHeight();
+			var fH = $("footer").outerHeight();
+			var cH = $("#content").outerHeight();
+			/*if($("#content").outerHeight() < (wH - hH - fH)){
+				$("#content").height(wH - hH - fH - 24);
+			}*/
+
+			
+		});
+	</script>
+	</footer>
+		<div id='sub-footer'>
+			<ul>
+				<li><a href='contact-us'>Contact Us</a></li>
+				<li><a href='faq'>FAQs</a></li>
+				<li><a href='agents'>Our Agents</a></li>
+				<li><a href='apps'>Apps</a></li>
+				<li><a href='tos'>Terms of Use</a></li>
+				<li><a href='privacy'>Privacy Policy</a></li>
+				<li><a href='bugs'>Report a Problem</a></li>
+			</ul>
+		</div>
