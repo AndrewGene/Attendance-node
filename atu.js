@@ -3,7 +3,9 @@ var http = require('http'),
     ejs  = require('ejs'),
     mongoose = require('mongoose'),
     path = require('path'),
-    fs = require('fs');
+    fs = require('fs'),
+    uuid = require('node-uuid'),
+    bcrypt = require('bcrypt');
 var app = express();
 app.configure(function() {
     app.use(express.bodyParser({
@@ -30,11 +32,12 @@ var SchoolClass = new Schema({
 	id:{type:String, required:true},
 	name:{type:String, required:true},
 	class_number:String,
-	when:String,
 	students:[Schema.Types.Mixed],
 	image:String,
-	class_dates:[Date], // the real dates of class
-	class_times_of_week:[Schema.Types.Mixed], //{day:Tuesday, start_hour:18, start_minute:00, end_hour:19, end_minute:00}
+	start_date:Date,
+	end_date:Date,
+	dates:[Date], // the real dates of class
+	times_of_week:[Schema.Types.Mixed], //{day:Tuesday, start_hour:18, start_minute:00, end_hour:19, end_minute:00}
 	grade_ratios:[Schema.Types.Mixed], //{homework:30,tests:30,final:40} (percentages)
 	syllabus:String, //url
 	grade_ranges:[Schema.Types.Mixed], //{a:{high:100, low:90}...
@@ -131,6 +134,70 @@ app.get('/', function(req, res) {
 	res.render('home',{title:"Introduction to iOS Programming"});
 });
 
+app.post('/instructor/login',function(req,res){
+	if(req.body.email !== undefined && req.body.password !== undefined){
+		console.log('email',req.body.email);
+		console.log('email - uppered', req.body.email.toUpperCase());
+		console.log('pass',req.body.password);
+		InstructorModel.findOne({'email':req.body.email.toUpperCase()},function(err,instructor){
+			console.log(instructor);
+			if(!err){
+				if(instructor !== undefined && instructor !== null){
+					if(bcrypt.compareSync(req.body.password,instructor.password)){
+						instructor = instructor.toObject();
+						instructor.password = undefined;
+						res.json({'instructor':instructor,'success':true});
+					}
+					else{
+						res.json({'success':false,'error':'Instructor not found'});
+					}
+				}
+				else{
+					res.json({'success':false,'error':'Instructor not found'});
+				}
+			}
+			else{
+				res.json({'success':false,'error':err});
+			}
+		});
+	}
+	else{
+		res.json({'success':false,'error':'missing parameters'});
+	}
+});
+
+app.post('/student/login',function(req,res){
+	if(req.body.email !== undefined && req.body.password !== undefined){
+		console.log('email',req.body.email);
+		console.log('email - uppered', req.body.email.toUpperCase());
+		console.log('pass',req.body.password);
+		StudentModel.findOne({'email':req.body.email.toUpperCase()},function(err,student){
+			console.log(student);
+			if(!err){
+				if(student !== undefined && student !== null){
+					if(bcrypt.compareSync(req.body.password,student.password)){
+						student = student.toObject();
+						student.password = undefined;
+						res.json({'student':student,'success':true});
+					}
+					else{
+						res.json({'success':false,'error':'Student not found'});
+					}
+				}
+				else{
+					res.json({'success':false,'error':'Student not found'});
+				}
+			}
+			else{
+				res.json({'success':false,'error':err});
+			}
+		});
+	}
+	else{
+		res.json({'success':false,'error':'missing parameters'});
+	}
+});
+
 app.post('/api/instructor', function(req, res){
 /*
  *
@@ -145,6 +212,31 @@ app.post('/api/instructor', function(req, res){
 	added_date:{type:Date, default:Date.now}
  */
 	if(req.body.first_name !== undefined && req.body.last_name !== undefined && req.body.email !== undefined && req.body.password !== undefined){
+		var instructor = {
+			first_name:req.body.first_name,
+			last_name:req.body.last_name,
+			email:req.body.email.toUpperCase(),
+			password: bcrypt.hashSync(req.body.password, 10)
+		}
+
+		if(req.body.preferred_name !== undefined){
+			instructor = req.body.preferred_name;
+		}
+		
+		var newInstructor = new InstructorModel(instructor);
+		newInsructor.save(function(instructorError,theInstructor){
+			if(!instructorError){
+				if(theInstructor !== undefined && theInstructor !== null){
+					res.json({'success':true});
+				}
+				else{
+					res.json({'success':false,'error':'Instructor record could not be created'});
+				}
+			}
+			else{
+				res.json({'success':false,'error':instructorError});
+			}
+		});
 
 	}
 	else{
@@ -157,12 +249,11 @@ app.post('/api/class', function(req, res){
  *
 	id:{type:String, required:true},
 	name:{type:String, required:true},
-	class_number:String,
-	when:String,
+	number:String,
 	students:[Schema.Types.Mixed],
 	image:String,
-	class_dates:[Date], // the real dates of class
-	class_times_of_week:[Schema.Types.Mixed], //{day:Tuesday, start_hour:18, start_minute:00, end_hour:19, end_minute:00}
+	dates:[Date], // the real dates of class
+	times_of_week:[Schema.Types.Mixed], //{day:Tuesday, start_hour:18, start_minute:00, end_hour:19, end_minute:00}
 	grade_ratios:[Schema.Types.Mixed], //{homework:30,tests:30,final:40} (percentages)
 	syllabus:String, //url
 	grade_ranges:[Schema.Types.Mixed], //{a:{high:100, low:90}...
@@ -170,7 +261,61 @@ app.post('/api/class', function(req, res){
 	added_date:{type:Date, default:Date.now}
  */
 	if(req.body.name !== undefined){
+		var school_class = {
+			name: req.body.name,
+			id: uuid.v4().toUpperCase()
+		}		
+
+		if(req.body.class_number !== undefined){
+			school_class.class_number = req.body.class_number;
+		}
+
+		if(req.body.start_date !== undefined){
+			school_class.start_date = req.body.start_date;
+		}
+
+		if(req.body.end_date !== undefined){
+			school_class.end_date = req.body.end_date;
+		}
+
+		if(req.body.start_date !== undefined && req.body.end_date !== undefined){
+			//calculate school_class.dates field
+		}
+
+		if(req.body.times_of_week !== undefined){
+			school_class.times_of_week = req.body.times_of_week;
+		}
+
+		if(req.body.grade_ratios !== undefined){
+			school_class.grade_ratios = req.body.grade_ratios;
+		}
+
+		if(req.body.syllabus !== undefined){
+			school_class.syllabus = req.body.syllabus;
+		}
+
+		if(req.body.grade_ranges !== undefined){
+			school_class.grade_ranges = req.body.grade_ranges;
+		}
+
+		if(req.body.attendance_penalty !== undefined){
+			school_class.attendance_penalty = req.body.attendance_penalty;
+		}
 		
+		var newClass = new SchoolClassModel(school_classs);
+		newClass.save(function(classError,theClass){
+			if(!classError){
+				if(theClass !== undefined && theClass !== null){
+					res.json({'success':true});
+				}
+				else{
+					res.json({'success':false,'error':'Class could not be created'});
+				}
+			}
+			else{
+				res.json({'success':false,'error':classError});
+			}
+		});
 	}
 	else{
 		res.json({'success':false, 'error':'name is required'});
@@ -192,7 +337,39 @@ app.post('/api/student', function(req, res){
 	added_date:{type:Date, default:Date.now}
  */
 	if(req.body.first_name !== undefined && req.body.last_name !== undefined){
+		var student = {
+			first_name: req.body.first_name,
+			last_name: req.body.last_name,
+			id: uuid.v4().toUpperCase()
+		}	
+
+		if(req.body.preferred_name !== undefined){
+			student.preferred_name = req.body.preferred_name;
+		}
+
+		if(req.body.email !== undefined){
+			student.email = req.body.email.toUpperCase();
+		}
+
+		if(req.body.password !== undefined){
+			student.password = bcrypt.hashSync(req.body.password, 10);
+		}
 		
+		var newStudent = new StudentModel(student);
+		newStudent.save(function(studentError,theStudent){
+			if(!studentError){
+				if(theStudent !== undefined && theStudent !== null){
+					res.json({'success':true});
+				}
+				else{
+					res.json({'success':false,'error':'Student record could not be created'});
+				}
+			}
+			else{
+				res.json({'success':false,'error':studentError});
+			}
+		});
+
 	}
 	else{
 		res.json({'success':false, 'error':'first_name and last_name are both required'});
@@ -214,7 +391,47 @@ app.post('/api/assignment', function(req, res){
 	added_date:{type:Date, default:Date.now}
  */
 	if(req.body.class_id !== undefined && req.body.type !== undefined && req.body.name !== undefined){
+		var assignment = {
+			class_id: req.body.class_id,
+			type: req.body.type,
+			name: req.body.name,
+			id: uuid.v4().toUpperCase()
+		}	
+
+		if(req.body.description !== undefined){
+			assignment.description = req.body.description;
+		}
+
+		if(req.body.instructor_notes !== undefined){
+			assignment.instructor_notes = req.body.instructor_notes;
+		}
+
+		if(req.body.due_date !== undefined){
+			assignment.due_date = req.body.due_date;
+		}
+
+		if(req.body.max_points !== undefined){
+			assignment.max_points = req.body.max_points;
+		}
+
+		if(req.body.url !== undefined){
+			assignment.url = req.body.url;
+		}
 		
+		var newAssigment = new AssignmentModel(assignment);
+		newAssignment.save(function(assignmentError,theAssignment){
+			if(!assignmentError){
+				if(theAssignment !== undefined && theAssignment !== null){
+					res.json({'success':true});
+				}
+				else{
+					res.json({'success':false,'error':'Assignment could not be created'});
+				}
+			}
+			else{
+				res.json({'success':false,'error':assignmentError});
+			}
+		});
 	}
 	else{
 		res.json({'success':false, 'error':'class_id, type, and name are all required'});
@@ -237,7 +454,44 @@ app.post('/api/grade', function(req, res){
 	added_date:{type:Date, default:Date.now}
  */
 	if(req.body.assignment_id !== undefined && req.body.student_id){
-		
+		var grade = {
+			assignment_id: req.body.assignment_id,
+			student_id: req.body.student_id,
+			id:uuid.v4().toUpperCase()
+		};
+
+		//Optional fields go here
+		if(req.body.points !== undefined){
+			grade.points = req.body.points;
+		}
+
+		if(req.body.completed_date !== undefined){
+			grade.completed_date = req.body.completed_date;
+		}
+
+		if(req.body.penalty_forgiveness_reason !== undefined){
+			grade.penalty_forgiveness_reason = req.body.penalty_forgiveness_reason;
+		}
+
+		if(req.body.instructor_notes !== undefined){
+			grade.instructor_notes = req.body.instructor_notes;
+		}
+		/////////////////////////
+
+		var newGrade = new GradeModel(grade);
+		newGrade.save(function(gradeError,theGrade){
+			if(!gradeError){
+				if(theGrade !== undefined && theGrade !== null){
+					res.json({'success':true});
+				}
+				else{
+					res.json({'success':false,'error':'Grade could not be created'});
+				}
+			}
+			else{
+				res.json({'success':false,'error':gradeError});
+			}
+		});
 	}
 	else{
 		res.json({'success':false, 'error':'assignment_id and student_id are both  required'});
