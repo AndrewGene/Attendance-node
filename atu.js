@@ -29,7 +29,7 @@ var Schema = mongoose.Schema;
 var SchoolClass = new Schema({
 	id:{type:String, required:true},
 	name:{type:String, required:true},
-	class_number:{type:String, required:true},
+	class_number:String,
 	when:String,
 	students:[Schema.Types.Mixed],
 	image:String,
@@ -52,7 +52,7 @@ var Student = new Schema({
 	preferred_name:String,
 	email:String,
 	password:String,
-	invitation_code:{type:String,required:true},
+	invitation_code:String,
 	classes:[Schema.Types.Mixed],
 	profile_picture:String,
 	added_date:{type:Date, default:Date.now}
@@ -97,7 +97,7 @@ var Assignment = new Schema({
 	name:{type:String, required:true},
 	description:String,
 	instructor_notes:String,
-	due_date:{type:Date, required:true},
+	due_date:Date,
 	max_points:Number,
 	url:String, //in case a document is uploaded somewhere
 	added_date:{type:Date, default:Date.now}
@@ -112,7 +112,7 @@ var Grade = new Schema({
 	student_id:{type:String, required:true},
 	points:Number,
 	completed_date:Date,
-	assess_penalty:{type:Boolean, default:true}, //can be made false if valid reason is given
+	assess_penalty:{type:Boolean, default:false}, //can be made true if valid reason is given (it's late/incomplete)
 	penalty_forgiveness_reason:String,		
 	student_notes:String,
 	instructor_notes:String,
@@ -144,6 +144,12 @@ app.post('/api/instructor', function(req, res){
 	profile_picture:String,
 	added_date:{type:Date, default:Date.now}
  */
+	if(req.body.first_name !== undefined && req.body.last_name !== undefined && req.body.email !== undefined && req.body.password !== undefined){
+
+	}
+	else{
+		res.json({'success':false, 'error':'first_name, last_name, email, and password are all required'});
+	}
 });
 
 app.post('/api/class', function(req, res){
@@ -151,7 +157,7 @@ app.post('/api/class', function(req, res){
  *
 	id:{type:String, required:true},
 	name:{type:String, required:true},
-	class_number:{type:String, required:true},
+	class_number:String,
 	when:String,
 	students:[Schema.Types.Mixed],
 	image:String,
@@ -163,6 +169,12 @@ app.post('/api/class', function(req, res){
 	attendance_penalty:[Schema.Types.Mixed], //{missed:3, penalty:10%} (dropped a "letter-grade") {late:5, penalty:5%}
 	added_date:{type:Date, default:Date.now}
  */
+	if(req.body.name !== undefined){
+		
+	}
+	else{
+		res.json({'success':false, 'error':'name is required'});
+	}
 });
 
 app.post('/api/student', function(req, res){
@@ -174,11 +186,17 @@ app.post('/api/student', function(req, res){
 	preferred_name:String,
 	email:String,
 	password:String,
-	invitation_code:{type:String,required:true},
+	invitation_code:String,
 	classes:[Schema.Types.Mixed],
 	profile_picture:String,
 	added_date:{type:Date, default:Date.now}
  */
+	if(req.body.first_name !== undefined && req.body.last_name !== undefined){
+		
+	}
+	else{
+		res.json({'success':false, 'error':'first_name and last_name are both required'});
+	}
 });
 
 app.post('/api/assignment', function(req, res){
@@ -190,11 +208,17 @@ app.post('/api/assignment', function(req, res){
 	name:{type:String, required:true},
 	description:String,
 	instructor_notes:String,
-	due_date:{type:Date, required:true},
+	due_date:Date,
 	max_points:Number,
 	url:String, //in case a document is uploaded somewhere
 	added_date:{type:Date, default:Date.now}
  */
+	if(req.body.class_id !== undefined && req.body.type !== undefined && req.body.name !== undefined){
+		
+	}
+	else{
+		res.json({'success':false, 'error':'class_id, type, and name are all required'});
+	}
 });
 
 app.post('/api/grade', function(req, res){
@@ -212,6 +236,12 @@ app.post('/api/grade', function(req, res){
 	url:String, //in case they upload it
 	added_date:{type:Date, default:Date.now}
  */
+	if(req.body.assignment_id !== undefined && req.body.student_id){
+		
+	}
+	else{
+		res.json({'success':false, 'error':'assignment_id and student_id are both  required'});
+	}
 });
 
 app.put('/api/instructor/:id([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12})', function(req, res){
