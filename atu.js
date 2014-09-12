@@ -23,7 +23,7 @@ app.set('view options', {
     layout: false
 });
 
-mongoose.connect('mongodb://localhost/atu_ios_db');
+mongoose.connect('mongodb://localhost/atu_db');
 
 var Schema = mongoose.Schema;
 
@@ -134,7 +134,11 @@ app.get('/', function(req, res) {
 	res.render('home',{title:"Introduction to iOS Programming"});
 });
 
-app.post('/instructor/login',function(req,res){
+app.get('/api/student_list', function(req,res){
+	res.json({'success':true,'students':['Cody Bailey','Brianne Campbell','Ben Drennan','Ryan Foley','Joseph Hull','Corey Mellon','Hayden Poff','Jacob Poirrier','Patrick Snell']});
+});
+
+app.post('/api/instructor/login',function(req,res){
 	if(req.body.email !== undefined && req.body.password !== undefined){
 		console.log('email',req.body.email);
 		console.log('email - uppered', req.body.email.toUpperCase());
@@ -166,7 +170,7 @@ app.post('/instructor/login',function(req,res){
 	}
 });
 
-app.post('/student/login',function(req,res){
+app.post('/api/student/login',function(req,res){
 	if(req.body.email !== undefined && req.body.password !== undefined){
 		console.log('email',req.body.email);
 		console.log('email - uppered', req.body.email.toUpperCase());
